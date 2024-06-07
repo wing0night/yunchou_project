@@ -14,18 +14,15 @@ def dijkstra(G, start):
             continue
         prev[node] = prev_node  # 记录前一个节点
         for neighbor in G.neighbors(node):
-            # edge_weight = G[node][neighbor]['weight'] + G[node][neighbor].get('penalty', 0) + G[node][neighbor].get('deterioration', 0)  # 加上惩罚项和变化项
-            # edge_weight = G[node][neighbor]['weight'] + edge_usage[(node, neighbor)] * 4
-            edge_weight = G[node][neighbor]['weight'] / (1 - (5 - G[node][neighbor]['capacity']) * 0.5)
-            # edge_weight = G[node][neighbor]['weight']
+            # 添加惩罚项的道路权值函数
+            if G[node][neighbor]['capacity'] <= 5:  # 进行判断，当道路容纳量小于5时才添加惩罚项
+                edge_weight = G[node][neighbor]['weight'] / (1 - (5 - G[node][neighbor]['capacity']) * 0.5)
+            else:
+                edge_weight = G[node][neighbor]['weight']
+
             if dist[node] + edge_weight < dist[neighbor]:
                 dist[neighbor] = dist[node] + edge_weight
                 heapq.heappush(queue, (dist[neighbor], neighbor, node))  # 传递前一个节点信息到下一步
-                # 统计边的通过次数，考虑边的节点按照字典序排序
-
-                #edge = (node, neighbor)  # 使用有序元组作为边的识别符
-                #edge = tuple(sorted([node, neighbor]))  # 边的节点按照字典序排序
-                #edge_usage[edge] += 1
 
     return dist, prev
 
@@ -33,7 +30,7 @@ def evacuate(G, S, D, Ts):
     edge_usage = {(u, v): 0 for u, v, d in G.edges(data=True)}  # 存放每个路径的通过次数
     new_edge_usage = {(v, u): 0 for u, v, d in G.edges(data=True)}  # 将同一条路径的反向键值也加进字典
     edge_usage.update(new_edge_usage)
-    for t in range(0, 5):  # 设置为循环10次
+    for t in range(0, 5):  # 设置为循环5次
         rows = []
         edge_usage = {key: 0 for key in edge_usage}  # 每一次循环开头初始化edge_usage（后面计算是用已更新的capacity）
         for s in S:
@@ -60,21 +57,16 @@ def evacuate(G, S, D, Ts):
                 data = (("", f"Path from {s} to {d_choose}", f"{path_str}", f"Time: {dist[d_choose]}"))
                 rows.append(data)
 
+        # 表格输出
         headers = [f"Round: {t}", "route", "path", "Time"]
         table = tabulate(rows, headers, tablefmt="fancy_grid")
         print(table)
 
-                # print(f"Path from {s} to {d_choose}: {path_str}, Time: {dist[d_choose]}")
-
-
         # 根据每条边被通过的次数更新宽敞度参数
         for key, value in edge_usage.items():
-            # capacity = G[u][v]['capacity']  # 假设初始宽敞度为1
-            # capacity = 1
-            capacity = 5
             deterioration_factor = 0.1  # 宽敞度衰减因子 
             deterioration = value * deterioration_factor  # 根据通过次数更新衰减量
-            new_capacity = max(3.1, capacity - deterioration)  # 更新后的宽敞度不能小于3
+            new_capacity = max(3.1, G[key[0]][key[1]]['capacity'] - deterioration)  # 更新后的宽敞度不能小于3
             G[key[0]][key[1]]['capacity'] = new_capacity
 
 
@@ -91,12 +83,12 @@ nodes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
         ]
 G.add_nodes_from(nodes)
 edges = [
-    ('1', '2', {'weight': 20, 'capacity': 10}), ('1', '3', {'weight': 8, 'capacity': 10}), ('1', '9', {'weight': 22, 'capacity': 10}), ('1', 'E1', {'weight': 8, 'capacity': 10}), ('1', 'C1', {'weight': 15, 'capacity': 10}),
-    ('2', '8', {'weight': 35, 'capacity': 10}), ('2', '36', {'weight': 3, 'capacity': 10}), ('2', '34', {'weight': 30, 'capacity': 10}), ('2', 'C1', {'weight': 6, 'capacity': 10}), ('2', 'D1', {'weight': 23, 'capacity': 10}),
-    ('3', '6', {'weight': 17, 'capacity': 10}), ('3', '4', {'weight': 23, 'capacity': 10}), ('3', 'F1', {'weight': 16, 'capacity': 10}),
-    ('4', '7', {'weight': 25, 'capacity': 10}), ('4', 'F1', {'weight': 7, 'capacity': 10}), ('4', 'G1', {'weight': 10, 'capacity': 10}), ('4', '13', {'weight': 37, 'capacity': 10}),
-    ('5', '7', {'weight': 13, 'capacity': 10}), ('5', '14', {'weight': 29, 'capacity': 10}), ('5', 'I1', {'weight': 17, 'capacity': 10}), ('5', '16', {'weight': 52, 'capacity': 10}),
-    ('6', '11', {'weight': 31, 'capacity': 10}), ('6', '12', {'weight': 37, 'capacity': 10}), ('6', 'H1', {'weight': 19, 'capacity': 10}), ('6', 'F1', {'weight': 13, 'capacity': 10}),
+    ('1', '2', {'weight': 20, 'capacity': 5}), ('1', '3', {'weight': 8, 'capacity': 10}), ('1', '9', {'weight': 22, 'capacity': 10}), ('1', 'E1', {'weight': 8, 'capacity': 10}), ('1', 'C1', {'weight': 15, 'capacity': 10}),
+    ('2', '8', {'weight': 35, 'capacity': 5}), ('2', '36', {'weight': 3, 'capacity': 10}), ('2', '34', {'weight': 30, 'capacity': 10}), ('2', 'C1', {'weight': 6, 'capacity': 10}), ('2', 'D1', {'weight': 23, 'capacity': 10}),
+    ('3', '6', {'weight': 17, 'capacity': 5}), ('3', '4', {'weight': 23, 'capacity': 10}), ('3', 'F1', {'weight': 16, 'capacity': 10}),
+    ('4', '7', {'weight': 25, 'capacity': 5}), ('4', 'F1', {'weight': 7, 'capacity': 10}), ('4', 'G1', {'weight': 10, 'capacity': 10}), ('4', '13', {'weight': 37, 'capacity': 10}),
+    ('5', '7', {'weight': 13, 'capacity': 5}), ('5', '14', {'weight': 29, 'capacity': 10}), ('5', 'I1', {'weight': 17, 'capacity': 10}), ('5', '16', {'weight': 52, 'capacity': 10}),
+    ('6', '11', {'weight': 31, 'capacity': 5}), ('6', '12', {'weight': 37, 'capacity': 10}), ('6', 'H1', {'weight': 19, 'capacity': 10}), ('6', 'F1', {'weight': 13, 'capacity': 10}),
     ('7', '8', {'weight': 27, 'capacity': 10}), ('7', 'J1', {'weight': 29, 'capacity': 10}), ('7', 'G1', {'weight': 12, 'capacity': 10}), ('7', '17', {'weight': 42, 'capacity': 10}),
     ('8', 'D1', {'weight': 23, 'capacity': 10}), ('8', '50', {'weight': 9, 'capacity': 10}),
     ('9', 'A1', {'weight': 11, 'capacity': 10}), ('9', 'B1', {'weight': 20, 'capacity': 10}), ('9', 'E1', {'weight': 13, 'capacity': 10}), ('9', '10', {'weight': 32, 'capacity': 10}), ('9', '37', {'weight': 35, 'capacity': 10}),
@@ -142,9 +134,6 @@ edges = [
     ('45', '51', {'weight': 35, 'capacity': 10}),
 
 ]
-
-# new_edges = [(u, v, {**data}, {'capacity': 1}) for u, v, data in edges]  # 添加capacity键（都赋值为1）
-# edges['capacity'] = 1
 
 G.add_edges_from(edges)
 
