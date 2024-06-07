@@ -1,4 +1,15 @@
-my_dict = {'a': 1, 'b': 2, 'c': 3}
+from tabulate import tabulate
 
-for key, value in my_dict.items():
-    print(f"Key: {key}, Value: {value}")
+s = "Source"
+d_choose = "Destination"
+path = ["A", "B", "C"]
+dist = 10
+path_str = ' -> '.join(path)
+data = [
+    ["", f"Path from {s} to {d_choose}", f"{path_str}", f"Time: {dist}"],
+]
+t = 1
+headers = [f"Round: {t}", "route", "path", "Time"]
+
+table = tabulate(data, headers, tablefmt="fancy_grid")
+print(table)

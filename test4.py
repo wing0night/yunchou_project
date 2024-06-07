@@ -1,5 +1,6 @@
 import networkx as nx
 import heapq
+from tabulate import tabulate
 
 def dijkstra(G, start):
     queue = [(0, start, None)]  # 添加一个None记录前一个节点
@@ -15,7 +16,7 @@ def dijkstra(G, start):
         for neighbor in G.neighbors(node):
             # edge_weight = G[node][neighbor]['weight'] + G[node][neighbor].get('penalty', 0) + G[node][neighbor].get('deterioration', 0)  # 加上惩罚项和变化项
             # edge_weight = G[node][neighbor]['weight'] + edge_usage[(node, neighbor)] * 4
-            edge_weight = G[node][neighbor]['weight'] - G[node][neighbor]['capacity'] * 0.3
+            edge_weight = G[node][neighbor]['weight'] / (1 - (5 - G[node][neighbor]['capacity']) * 0.5)
             # edge_weight = G[node][neighbor]['weight']
             if dist[node] + edge_weight < dist[neighbor]:
                 dist[neighbor] = dist[node] + edge_weight
@@ -32,7 +33,8 @@ def evacuate(G, S, D, Ts):
     edge_usage = {(u, v): 0 for u, v, d in G.edges(data=True)}  # 存放每个路径的通过次数
     new_edge_usage = {(v, u): 0 for u, v, d in G.edges(data=True)}  # 将同一条路径的反向键值也加进字典
     edge_usage.update(new_edge_usage)
-    for t in range(1, 5):  # 设置为循环10次
+    for t in range(0, 5):  # 设置为循环10次
+        rows = []
         edge_usage = {key: 0 for key in edge_usage}  # 每一次循环开头初始化edge_usage（后面计算是用已更新的capacity）
         for s in S:
             dist, prev = dijkstra(G, s)
@@ -54,17 +56,25 @@ def evacuate(G, S, D, Ts):
                         edge_usage[(neighbor, node)] += 1  # 给一条路径的相反端点描述键值也加上1，不然会导致成为有向图
                     node = prev[node]
                 path_str = ' -> '.join(path)
-                print(f"Path from {s} to {d_choose}: {path_str}, Distance: {dist[d_choose]}")
+
+                data = (("", f"Path from {s} to {d_choose}", f"{path_str}", f"Time: {dist[d_choose]}"))
+                rows.append(data)
+
+        headers = [f"Round: {t}", "route", "path", "Time"]
+        table = tabulate(rows, headers, tablefmt="fancy_grid")
+        print(table)
+
+                # print(f"Path from {s} to {d_choose}: {path_str}, Time: {dist[d_choose]}")
 
 
         # 根据每条边被通过的次数更新宽敞度参数
         for key, value in edge_usage.items():
             # capacity = G[u][v]['capacity']  # 假设初始宽敞度为1
             # capacity = 1
-            capacity = 1
+            capacity = 5
             deterioration_factor = 0.1  # 宽敞度衰减因子 
             deterioration = value * deterioration_factor  # 根据通过次数更新衰减量
-            new_capacity = max(0, capacity - deterioration)  # 更新后的宽敞度不能小于0
+            new_capacity = max(3.1, capacity - deterioration)  # 更新后的宽敞度不能小于3
             G[key[0]][key[1]]['capacity'] = new_capacity
 
 
