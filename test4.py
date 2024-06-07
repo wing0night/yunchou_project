@@ -58,7 +58,7 @@ def evacuate(G, S, D, Ts):
                 rows.append(data)
 
         # 表格输出
-        headers = [f"Round: {t}", "route", "path", "Time"]
+        headers = [f"Round: {t+1}", "route", "path", "Time"]
         table = tabulate(rows, headers, tablefmt="fancy_grid")
         print(table)
 
@@ -138,9 +138,9 @@ edges = [
 G.add_edges_from(edges)
 
 # 设置疏散原点、目的地和安全时限
-S = ['35', '36', '37']
+S = ['4', '7', '8', '3']
 D = ['48', '43', '51']
-Ts = 200
+Ts = 200  # 当时限小于200时才会被归类为是一个安全路线，被计入有效路径以及输出
 
 evacuate(G, S, D, Ts)
 
